@@ -14,7 +14,6 @@ type Clock interface {
 	Now() time.Time
 	Since(t time.Time) time.Duration
 	NewTicker(d time.Duration) Ticker
-
 	NewTimer(d time.Duration) Timer
 	AfterFunc(d time.Duration, f func()) Timer
 }
@@ -173,7 +172,8 @@ func (fc *fakeClock) NewTimer(d time.Duration) Timer {
 	done := make(chan time.Time, 1)
 	s := &sleeper{
 		fc:       fc,
-		until:    fc.time.Add(d),
+		// Use fc.Now() to ensure fc.l is held when accessing fc.time.
+		until:    fc.Now().Add(d),
 		callback: sendTime,
 		arg:      done,
 		ch:       done,
@@ -188,7 +188,8 @@ func (fc *fakeClock) NewTimer(d time.Duration) Timer {
 func (fc *fakeClock) AfterFunc(d time.Duration, f func()) Timer {
 	s := &sleeper{
 		fc:       fc,
-		until:    fc.time.Add(d),
+		// Use fc.Now() to ensure fc.l is held when accessing fc.time.
+		until:    fc.Now().Add(d),
 		callback: goFunc,
 		arg:      f,
 		// zero-valued ch, the same as it is in the `time` pkg
@@ -200,7 +201,6 @@ func (fc *fakeClock) AfterFunc(d time.Duration, f func()) Timer {
 func (fc *fakeClock) addTimer(s *sleeper) {
 	fc.l.Lock()
 	defer fc.l.Unlock()
-
 	now := fc.time
 	if now.Sub(s.until) >= 0 {
 		// special case - trigger immediately
@@ -243,9 +243,8 @@ func (fc *fakeClock) Sleep(d time.Duration) {
 // Time returns the current time of the fakeClock
 func (fc *fakeClock) Now() time.Time {
 	fc.l.RLock()
-	t := fc.time
-	fc.l.RUnlock()
-	return t
+	defer fc.l.RUnlock()
+	return fc.time
 }
 
 // Since returns the duration that has passed since the given time on the fakeClock
@@ -269,7 +268,6 @@ func (fc *fakeClock) NewTicker(d time.Duration) Ticker {
 func (fc *fakeClock) Advance(d time.Duration) {
 	fc.l.Lock()
 	defer fc.l.Unlock()
-
 	end := fc.time.Add(d)
 	var newSleepers []*sleeper
 	for _, s := range fc.sleepers {

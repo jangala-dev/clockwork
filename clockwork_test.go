@@ -276,3 +276,14 @@ func TestAdvancePastAfter(t *testing.T) {
 		t.Errorf("timestamp is too early")
 	}
 }
+
+// TestFakeClockRace detects data races in fakeClock when invoked with run using `go -race ...`.
+// There are no failure conditions when invoked without the -race flag.
+func TestFakeClockRace(t *testing.T) {
+	fc := &fakeClock{}
+	d := time.Second
+	go func() { fc.Advance(d) }()
+	go func() { fc.NewTicker(d) }()
+	go func() { fc.NewTimer(d) }()
+	go func() { fc.Sleep(d) }()
+}

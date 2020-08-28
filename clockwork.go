@@ -25,6 +25,9 @@ type FakeClock interface {
 	// BlockUntil will block until the FakeClock has the given number of
 	// sleepers (callers of Sleep or After)
 	BlockUntil(n int)
+	// Set sets the FakeClock to a new point in time, ensuring channels from any
+	// previous invocations of After are notified appropriately before returning
+	Set(t time.Time)
 }
 
 // NewRealClock returns a Clock which simply delegates calls to the actual time
@@ -127,6 +130,19 @@ func notifyBlockers(blockers []*blocker, count int) (newBlockers []*blocker) {
 	return
 }
 
+// notifySleepers finds and notifies all the sleepers waiting until time t.
+func notifySleepers(sleepers []*sleeper, t time.Time) []*sleeper {
+	var newSleepers []*sleeper
+	for _, s := range sleepers {
+		if t.Sub(s.until) >= 0 {
+			s.done <- t
+		} else {
+			newSleepers = append(newSleepers, s)
+		}
+	}
+	return newSleepers
+}
+
 // Sleep blocks until the given duration has passed on the fakeClock
 func (fc *fakeClock) Sleep(d time.Duration) {
 	<-fc.After(d)
@@ -156,23 +172,28 @@ func (fc *fakeClock) NewTicker(d time.Duration) Ticker {
 	return ft
 }
 
+// set sets the fakeClock and notifies sleepers and blockers before returning.
+// The caller must hold fc.l for the duration.
+func (fc *fakeClock) set(t time.Time) {
+	fc.sleepers = notifySleepers(fc.sleepers, t)
+	fc.blockers = notifyBlockers(fc.blockers, len(fc.sleepers))
+	fc.time = t
+}
+
 // Advance advances fakeClock to a new point in time, ensuring channels from any
 // previous invocations of After are notified appropriately before returning
 func (fc *fakeClock) Advance(d time.Duration) {
 	fc.l.Lock()
 	defer fc.l.Unlock()
-	end := fc.time.Add(d)
-	var newSleepers []*sleeper
-	for _, s := range fc.sleepers {
-		if end.Sub(s.until) >= 0 {
-			s.done <- end
-		} else {
-			newSleepers = append(newSleepers, s)
-		}
-	}
-	fc.sleepers = newSleepers
-	fc.blockers = notifyBlockers(fc.blockers, len(fc.sleepers))
-	fc.time = end
+	fc.set(fc.time.Add(d))
+}
+
+// Set sets the FakeClock to a new point in time, ensuring channels from any
+// previous invocations of After are notified appropriately before returning
+func (fc *fakeClock) Set(t time.Time) {
+	fc.l.Lock()
+	defer fc.l.Unlock()
+	fc.set(t)
 }
 
 // BlockUntil will block until the fakeClock has the given number of sleepers

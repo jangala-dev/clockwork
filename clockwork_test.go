@@ -137,3 +137,75 @@ func TestFakeClockSince(t *testing.T) {
 		t.Fatalf("fakeClock.Since() returned unexpected duration, got: %d, want: %d", fc.Since(now), elapsedTime)
 	}
 }
+
+func TestSet(t *testing.T) {
+	for _, test := range []struct {
+		name              string
+		start             time.Time
+		now               time.Time
+		sleepers          []time.Duration
+		wantNotifications int
+	}{
+		{
+			name:  "Year 10k",
+			start: time.Now(),
+			now:   time.Date(10001, 1, 1, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:  "Back to 2k",
+			start: time.Date(10001, 1, 1, 0, 0, 0, 0, time.UTC),
+			now:   time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:  "Leap forward",
+			start: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+			now:   time.Date(2000, 1, 1, 1, 0, 0, 0, time.UTC),
+			sleepers: []time.Duration{
+				time.Second,
+				time.Hour,
+				2 * time.Hour,
+			},
+			wantNotifications: 2,
+		},
+		{
+			name:  "Leap backwards",
+			start: time.Date(2000, 1, 1, 1, 0, 0, 0, time.UTC),
+			now:   time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+			sleepers: []time.Duration{
+				time.Second,
+				time.Hour,
+				2 * time.Hour,
+			},
+			wantNotifications: 0,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			fc := NewFakeClockAt(test.start)
+
+			var sleepers []<-chan time.Time
+			for _, s := range test.sleepers {
+				sleepers = append(sleepers, fc.After(s))
+			}
+
+			fc.Set(test.now)
+			if fc.Now() != test.now {
+				t.Errorf("failed to Set(): got %v, want %v", fc.Now(), test.now)
+			}
+
+			gotNotifications := 0
+			for _, s := range sleepers {
+				select {
+				case wakeTime := <-s:
+					t.Logf("%v woke up", wakeTime)
+					gotNotifications++
+				default:
+					t.Log("A sleeper is still sleeping")
+				}
+			}
+			if gotNotifications != test.wantNotifications {
+				t.Errorf("got incorrect number of notifications: got %d, want %d", gotNotifications, test.wantNotifications)
+			}
+
+		})
+	}
+}

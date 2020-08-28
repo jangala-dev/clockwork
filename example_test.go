@@ -25,6 +25,9 @@ func TestMyFunc(t *testing.T) {
 	var i int
 	c := NewFakeClock()
 
+	// Jump to some specific time
+	c.Set(time.Date(2011, 12, 31, 1, 2, 3, 0, time.UTC))
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {

@@ -1,6 +1,7 @@
 package clockwork
 
 import (
+	"errors"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -284,6 +285,9 @@ func (fc *fakeClock) Since(t time.Time) time.Duration {
 }
 
 func (fc *fakeClock) NewTicker(d time.Duration) Ticker {
+	if d <= 0 {
+		panic(errors.New("non-positive interval for NewTicker"))
+	}
 	ft := &fakeTicker{
 		c:      make(chan time.Time, 1),
 		stop:   make(chan bool, 1),

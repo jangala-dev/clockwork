@@ -277,7 +277,7 @@ func (fc *fakeClock) NewTicker(d time.Duration) Ticker {
 		clock:  fc,
 		period: d,
 	}
-	go ft.tick()
+	ft.runTickThread()
 	return ft
 }
 

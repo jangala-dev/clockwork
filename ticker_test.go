@@ -6,6 +6,7 @@ import (
 )
 
 func TestFakeTickerStop(t *testing.T) {
+	t.Parallel()
 	fc := &fakeClock{}
 
 	ft := fc.NewTicker(1)
@@ -18,6 +19,7 @@ func TestFakeTickerStop(t *testing.T) {
 }
 
 func TestFakeTickerTick(t *testing.T) {
+	t.Parallel()
 	fc := &fakeClock{}
 	now := fc.Now()
 
@@ -59,6 +61,7 @@ func TestFakeTickerTick(t *testing.T) {
 }
 
 func TestFakeTicker_Race(t *testing.T) {
+	t.Parallel()
 	fc := NewFakeClock()
 
 	tickTime := 1 * time.Millisecond

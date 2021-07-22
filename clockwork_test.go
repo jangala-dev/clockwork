@@ -7,6 +7,7 @@ import (
 )
 
 func TestFakeClockAfter(t *testing.T) {
+	t.Parallel()
 	fc := &fakeClock{}
 
 	neg := fc.After(-1)
@@ -82,6 +83,7 @@ func TestFakeClockAfter(t *testing.T) {
 }
 
 func TestNotifyBlockers(t *testing.T) {
+	t.Parallel()
 	b1 := &blocker{1, make(chan struct{})}
 	b2 := &blocker{2, make(chan struct{})}
 	b3 := &blocker{5, make(chan struct{})}
@@ -114,6 +116,7 @@ func TestNotifyBlockers(t *testing.T) {
 }
 
 func TestNewFakeClock(t *testing.T) {
+	t.Parallel()
 	fc := NewFakeClock()
 	now := fc.Now()
 	if now.IsZero() {
@@ -127,6 +130,7 @@ func TestNewFakeClock(t *testing.T) {
 }
 
 func TestNewFakeClockAt(t *testing.T) {
+	t.Parallel()
 	t1 := time.Date(1999, time.February, 3, 4, 5, 6, 7, time.UTC)
 	fc := NewFakeClockAt(t1)
 	now := fc.Now()
@@ -136,6 +140,7 @@ func TestNewFakeClockAt(t *testing.T) {
 }
 
 func TestFakeClockSince(t *testing.T) {
+	t.Parallel()
 	fc := NewFakeClock()
 	now := fc.Now()
 	elapsedTime := time.Second
@@ -146,6 +151,7 @@ func TestFakeClockSince(t *testing.T) {
 }
 
 func TestFakeClockTimers(t *testing.T) {
+	t.Parallel()
 	fc := &fakeClock{}
 
 	zero := fc.NewTimer(0)
@@ -235,6 +241,7 @@ func withTimeout(t *testing.T, d time.Duration, fn func()) {
 }
 
 func TestBlockingOnTimers(t *testing.T) {
+	t.Parallel()
 	withTimeout(t, 100*time.Millisecond, func() {
 		fc := &fakeClock{}
 
@@ -263,6 +270,7 @@ func TestBlockingOnTimers(t *testing.T) {
 }
 
 func TestAdvancePastAfter(t *testing.T) {
+	t.Parallel()
 	fc := &fakeClock{}
 
 	start := fc.Now()
@@ -287,6 +295,7 @@ func TestAdvancePastAfter(t *testing.T) {
 // TestFakeClockRace detects data races in fakeClock when invoked with run using `go -race ...`.
 // There are no failure conditions when invoked without the -race flag.
 func TestFakeClockRace(t *testing.T) {
+	t.Parallel()
 	fc := &fakeClock{}
 	d := time.Second
 	go func() { fc.Advance(d) }()
@@ -296,6 +305,7 @@ func TestFakeClockRace(t *testing.T) {
 }
 
 func TestSet(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		name              string
 		start             time.Time

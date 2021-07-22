@@ -122,7 +122,9 @@ type fakeClock struct {
 
 // sleeper represents a waiting timer from NewTimer, Sleep, After, etc.
 type sleeper struct {
-	until    time.Time
+	until time.Time
+	l     sync.RWMutex // Guards until
+
 	callback func(interface{}, time.Time)
 	arg      interface{}
 
@@ -155,12 +157,23 @@ func (s *sleeper) Reset(d time.Duration) bool {
 	return active
 }
 
+func (s *sleeper) Until() time.Time {
+	s.l.RLock()
+	defer s.l.RUnlock()
+	return s.until
+}
+
+func (s *sleeper) SetUntil(t time.Time) {
+	s.l.Lock()
+	defer s.l.Unlock()
+	s.until = t
+}
+
 func (s *sleeper) Stop() bool {
 	stopped := atomic.CompareAndSwapUint32(&s.done, 0, 1)
 	if stopped {
-		// Expire the timer and notify blockers
-		s.until = s.fc.Now()
-		s.fc.Advance(0)
+		s.SetUntil(s.fc.Now()) // Expire the timer
+		s.fc.Advance(0)        // Notify blockers
 	}
 	return stopped
 }
@@ -244,7 +257,7 @@ func notifyBlockers(blockers []*blocker, count int) (newBlockers []*blocker) {
 func notifySleepers(sleepers []*sleeper, t time.Time) []*sleeper {
 	var newSleepers []*sleeper
 	for _, s := range sleepers {
-		if t.Sub(s.until) >= 0 {
+		if t.Sub(s.Until()) >= 0 {
 			s.awaken(t)
 		} else {
 			newSleepers = append(newSleepers, s)

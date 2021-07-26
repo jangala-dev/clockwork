@@ -34,15 +34,14 @@ type Timer interface {
 type FakeClock interface {
 	Clock
 	// Advance advances the FakeClock to a new point in time, ensuring any existing
-	// sleepers are notified appropriately before returning
+	// sleepers are notified appropriately before returning.
 	Advance(d time.Duration)
 	// BlockUntil will block until the FakeClock has the given number of
-	// sleepers (callers of Sleep or After)
+	// sleepers (callers of Sleep or After).
 	BlockUntil(n int)
-	// Set sets the FakeClock to a new point in time.
-	// if it's advance then the function ensures that any existing sleepers are
-	// notified appropriately before returning. Otherwise no notification will be
-	// done.
+	// Set sets the FakeClock to a new point in time, ensuring channels from any
+	// existing sleepers (callers of Sleep or After) are notified appropriately
+	// before returning.
 	Set(t time.Time)
 }
 

@@ -38,6 +38,9 @@ Now you can easily test `myFunc` with a `FakeClock`:
 func TestMyFunc(t *testing.T) {
 	c := clockwork.NewFakeClock()
 
+        // Jump to some specific time
+	c.Set(time.Date(2011, 12, 31, 1, 2, 3, 0, time.UTC))
+
 	// Start our sleepy function
 	var wg sync.WaitGroup
 	wg.Add(1)

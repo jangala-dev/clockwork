@@ -48,10 +48,11 @@ func (ft *fakeTicker) runTickThread() {
 			case <-next:
 				// We send the time that the tick was supposed to occur at.
 				tick := nextTick
-				// Before sending the tick, we'll compute the next tick time and star the clock.After call.
+				// Before sending the tick, we'll compute the next tick time and start the clock.After
+				// call.
 				now := ft.clock.Now()
 				// First, figure out how many periods there have been between "now" and the time we were
-				// supposed to have trigged, then advance over all of those.
+				// supposed to have triggered, then advance over all of those.
 				skipTicks := (now.Sub(tick) + ft.period - 1) / ft.period
 				nextTick = nextTick.Add(skipTicks * ft.period)
 				// Now, keep advancing until we are past now. This should happen at most once.
